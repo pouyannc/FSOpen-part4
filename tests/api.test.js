@@ -27,6 +27,12 @@ test('bloglist returns the correct number of items', async () => {
   expect(blogList.body).toHaveLength(helper.initialBlogs.length);
 });
 
+test('blog posts have unique identifier named "id"', async () => {
+  const blogList = await api.get('/api/blogs');
+
+  expect(blogList.body[0].id).toBeDefined();
+});
+
 afterAll(async () => {
   console.log('closing mongoose connection');
   mongoose.connection.close();
