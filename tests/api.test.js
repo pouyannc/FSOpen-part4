@@ -33,7 +33,7 @@ test('blog posts have unique identifier named "id"', async () => {
   expect(blogList.body[0].id).toBeDefined();
 });
 
-test('POST request successfully stores a new blog post in the db', async () => {
+describe('POST request', () => {
   const newPost = {
     title: 'New post!',
     author: 'Me',
@@ -41,16 +41,34 @@ test('POST request successfully stores a new blog post in the db', async () => {
     likes: 1,
   };
 
-  const addedPost = await api
-    .post('/api/blogs')
-    .send(newPost)
-    .expect(201)
-    .expect('Content-Type', /application\/json/);
+  test('successfully stores the new blog post in the db', async () => {
+    const addedPost = await api
+      .post('/api/blogs')
+      .send(newPost)
+      .expect(201)
+      .expect('Content-Type', /application\/json/);
 
-  const updatedList = await api.get('/api/blogs');
+    const updatedList = await api.get('/api/blogs');
 
-  expect(updatedList.body).toHaveLength(helper.initialBlogs.length + 1);
-  expect(updatedList.body).toContainEqual(addedPost.body);
+    expect(updatedList.body).toHaveLength(helper.initialBlogs.length + 1);
+    expect(updatedList.body).toContainEqual(addedPost.body);
+  });
+
+  const postMissingLikes = {
+    title: 'post does not have likes property',
+    author: 'Me',
+    url: 'https://blogpost.com/',
+  };
+
+  test('with empty likes field defaults to 0 likes', async () => {
+    const addedPost = await api
+      .post('/api/blogs')
+      .send(postMissingLikes)
+      .expect(201)
+      .expect('Content-Type', /application\/json/);
+
+    expect(addedPost.body.likes).toBeDefined();
+  });
 });
 
 afterAll(async () => {
