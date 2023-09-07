@@ -33,6 +33,26 @@ test('blog posts have unique identifier named "id"', async () => {
   expect(blogList.body[0].id).toBeDefined();
 });
 
+test('POST request successfully stores a new blog post in the db', async () => {
+  const newPost = {
+    title: 'New post!',
+    author: 'Me',
+    url: 'https://blogpost.com/',
+    likes: 1,
+  };
+
+  const addedPost = await api
+    .post('/api/blogs')
+    .send(newPost)
+    .expect(201)
+    .expect('Content-Type', /application\/json/);
+
+  const updatedList = await api.get('/api/blogs');
+
+  expect(updatedList.body).toHaveLength(helper.initialBlogs.length + 1);
+  expect(updatedList.body).toContainEqual(addedPost.body);
+});
+
 afterAll(async () => {
   console.log('closing mongoose connection');
   mongoose.connection.close();
