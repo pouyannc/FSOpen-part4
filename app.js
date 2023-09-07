@@ -6,6 +6,7 @@ const morgan = require('morgan');
 const logger = require('./utils/logger');
 const blogsRouter = require('./controllers/blogs');
 const config = require('./utils/config');
+const errorHandler = require('./utils/error_handler');
 
 const app = express();
 
@@ -22,5 +23,7 @@ app.use(express.json());
 app.use(morgan('tiny'));
 
 app.use('/api/blogs', blogsRouter);
+
+app.use(errorHandler);
 
 module.exports = app;

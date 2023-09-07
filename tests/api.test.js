@@ -69,6 +69,17 @@ describe('POST request', () => {
 
     expect(addedPost.body.likes).toBeDefined();
   });
+
+  const postMissingRequired = {
+    author: 'Me',
+  };
+
+  test('without title or request field returns status 400', async () => {
+    await api
+      .post('/api/blogs')
+      .send(postMissingRequired)
+      .expect(400);
+  });
 });
 
 afterAll(async () => {
