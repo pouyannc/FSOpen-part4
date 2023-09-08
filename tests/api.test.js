@@ -74,11 +74,14 @@ describe('POST request', () => {
     author: 'Me',
   };
 
-  test('without title or request field returns status 400', async () => {
+  test('without title or request field returns status 400 and the blog does not get added', async () => {
     await api
       .post('/api/blogs')
       .send(postMissingRequired)
       .expect(400);
+
+    const blogs = await helper.blogsInDb();
+    expect(blogs).toHaveLength(helper.initialBlogs.length);
   });
 });
 
