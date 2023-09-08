@@ -41,17 +41,17 @@ describe('POST request', () => {
     likes: 1,
   };
 
-  test('successfully stores the new blog post in the db', async () => {
+  test('successfully stores a valid blog post in the db', async () => {
     const addedPost = await api
       .post('/api/blogs')
       .send(newPost)
       .expect(201)
       .expect('Content-Type', /application\/json/);
 
-    const updatedList = await api.get('/api/blogs');
+    const updatedList = await helper.blogsInDb();
 
-    expect(updatedList.body).toHaveLength(helper.initialBlogs.length + 1);
-    expect(updatedList.body).toContainEqual(addedPost.body);
+    expect(updatedList).toHaveLength(helper.initialBlogs.length + 1);
+    expect(updatedList).toContainEqual(addedPost.body);
   });
 
   const postMissingLikes = {
@@ -79,6 +79,46 @@ describe('POST request', () => {
       .post('/api/blogs')
       .send(postMissingRequired)
       .expect(400);
+  });
+});
+
+describe('Deleting a blog post', () => {
+  test('using a valid id returns status code 204 and the blog is no longer in the database', async () => {
+    const startingBlogs = await helper.blogsInDb();
+    const blogToDelete = startingBlogs[0];
+
+    await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204);
+
+    const endingBlogs = await helper.blogsInDb();
+
+    expect(endingBlogs).toHaveLength(startingBlogs.length - 1);
+
+    const ids = endingBlogs.map((b) => b.id);
+
+    expect(ids).not.toContain(blogToDelete.id);
+  });
+});
+
+describe('Updating a blog post', () => {
+  const blogUpdate = {
+    title: 'React patterns',
+    author: 'Michael Chan',
+    url: 'https://reactpatterns.com/',
+    likes: 19,
+  };
+
+  test('successfully updates the first blog post in the db to have 19 likes', async () => {
+    const startingBlogs = await helper.blogsInDb();
+    const blogToUpdate = startingBlogs[0];
+
+    await api
+      .put(`/api/blogs/${blogToUpdate.id}`)
+      .send(blogUpdate)
+      .expect(200)
+      .expect('Content-Type', /application\/json/);
+
+    const updatedBlogs = await helper.blogsInDb();
+    expect(updatedBlogs[0].likes).toBe(19);
   });
 });
 
