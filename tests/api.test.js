@@ -137,7 +137,7 @@ describe('Creating a new user', () => {
     await user.save();
   });
 
-  test('with a unique username successfully saves the new user', async () => {
+  test('with a valid username and password successfully saves the new user', async () => {
     const newUser = {
       username: 'person',
       name: 'seb',
@@ -157,6 +157,24 @@ describe('Creating a new user', () => {
 
     const usernames = endingUsers.map((u) => u.username);
     expect(usernames).toContain(newUser.username);
+  });
+
+  test('with an invalid username or password returns the appropriate status and error', async () => {
+    const invalidUser = {
+      username: 'pe',
+      name: 'seb',
+      password: 'se',
+    };
+
+    const startingUsers = await helper.usersInDb();
+
+    await api
+      .post('/api/users')
+      .send(invalidUser)
+      .expect(400);
+
+    const endingUsers = await helper.usersInDb();
+    expect(endingUsers).toHaveLength(startingUsers.length);
   });
 });
 
