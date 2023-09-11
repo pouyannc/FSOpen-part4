@@ -1,8 +1,10 @@
 const mongoose = require('mongoose');
 const supertest = require('supertest');
+const bcrypt = require('bcrypt');
 const helper = require('./test_helper');
 const app = require('../app');
 const Blog = require('../models/blogs');
+const User = require('../models/users');
 
 const api = supertest(app);
 
@@ -122,6 +124,39 @@ describe('Updating a blog post', () => {
 
     const updatedBlogs = await helper.blogsInDb();
     expect(updatedBlogs[0].likes).toBe(19);
+  });
+});
+
+describe('Creating a new user', () => {
+  beforeEach(async () => {
+    await User.deleteMany({});
+
+    const passwordHash = await bcrypt.hash('password', 10);
+    const user = new User({ username: 'root', passwordHash });
+
+    await user.save();
+  });
+
+  test('with a unique username successfully saves the new user', async () => {
+    const newUser = {
+      username: 'person',
+      name: 'seb',
+      password: 'secret',
+    };
+
+    const startingUsers = await helper.usersInDb();
+
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(201)
+      .expect('Content-Type', /application\/json/);
+
+    const endingUsers = await helper.usersInDb();
+    expect(endingUsers).toHaveLength(startingUsers.length + 1);
+
+    const usernames = endingUsers.map((u) => u.username);
+    expect(usernames).toContain(newUser.username);
   });
 });
 
