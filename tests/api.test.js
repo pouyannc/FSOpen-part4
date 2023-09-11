@@ -168,13 +168,14 @@ describe('Creating a new user', () => {
 
     const startingUsers = await helper.usersInDb();
 
-    await api
+    const res = await api
       .post('/api/users')
       .send(invalidUser)
       .expect(400);
 
     const endingUsers = await helper.usersInDb();
     expect(endingUsers).toHaveLength(startingUsers.length);
+    expect(res.body.error).toBe('password is too short');
   });
 });
 
