@@ -160,22 +160,46 @@ describe('Creating a new user', () => {
   });
 
   test('with an invalid username or password returns the appropriate status and error', async () => {
-    const invalidUser = {
-      username: 'pe',
+    const shortPassUser = {
+      username: 'person',
       name: 'seb',
       password: 'se',
     };
 
+    const noPassUser = {
+      username: 'person',
+      name: 'seb',
+    };
+
+    const shortNameUser = {
+      username: 'p',
+      name: 'seb',
+      password: 'secret',
+    };
+
     const startingUsers = await helper.usersInDb();
 
-    const res = await api
+    let res;
+    res = await api
       .post('/api/users')
-      .send(invalidUser)
+      .send(shortPassUser)
       .expect(400);
+    expect(res.body.error).toBe('password is too short');
+
+    res = await api
+      .post('/api/users')
+      .send(noPassUser)
+      .expect(400);
+    expect(res.body.error).toBe('password is required');
+
+    res = await api
+      .post('/api/users')
+      .send(shortNameUser)
+      .expect(400);
+    expect(res.body.error).toBe('username is too short');
 
     const endingUsers = await helper.usersInDb();
     expect(endingUsers).toHaveLength(startingUsers.length);
-    expect(res.body.error).toBe('password is too short');
   });
 });
 
