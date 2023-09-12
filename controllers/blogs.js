@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 
 const Blog = require('../models/blogs');
 const User = require('../models/users');
+const { userExtractor } = require('../utils/middleware');
 
 blogsRouter.get('/', async (request, response) => {
   const blogList = await Blog.find({}).populate('user', { blogs: 0 });
@@ -10,12 +11,9 @@ blogsRouter.get('/', async (request, response) => {
   response.json(blogList);
 });
 
-blogsRouter.post('/', async (request, response, next) => {
+blogsRouter.post('/', userExtractor, async (request, response, next) => {
   try {
-    const decodedToken = jwt.verify(request.token, process.env.SECRET);
-    if (!decodedToken.id) return response.status(401).json({ error: 'invalid token' });
-
-    const user = await User.findById(decodedToken.id);
+    const { user } = request;
 
     const blog = new Blog({
       ...request.body,
@@ -32,13 +30,12 @@ blogsRouter.post('/', async (request, response, next) => {
   }
 });
 
-blogsRouter.delete('/:id', async (request, response) => {
+blogsRouter.delete('/:id', userExtractor, async (request, response) => {
   const blogId = request.params.id;
 
   const blog = await Blog.findById(blogId);
 
-  const decodedToken = jwt.verify(request.token, process.env.SECRET);
-  if (!decodedToken.id || decodedToken.id !== blog.user.toString()) return response.status(401).json({ error: 'invalid token' });
+  if (request.user.id !== blog.user.toString()) return response.status(401).json({ error: 'not authorized to delete' });
 
   await Blog.findByIdAndRemove(blogId);
 
