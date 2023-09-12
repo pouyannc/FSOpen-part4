@@ -15,17 +15,35 @@ beforeEach(async () => {
   const user = new User({ username: 'root', passwordHash });
 
   await user.save();
-});
 
-beforeEach(async () => {
   await Blog.deleteMany({});
 
-  const user = await User.find({});
-  const uid = user[0]._id;
+  const currentUsers = await User.find({});
+  const uid = currentUsers[0]._id;
 
   const blogObjects = helper.initialBlogs.map((b) => new Blog({ ...b, user: uid }));
   const promiseArray = blogObjects.map((b) => b.save());
   await Promise.all(promiseArray);
+
+  const blogs = await helper.blogsInDb();
+  blogs.forEach((b) => {
+    currentUsers[0].blogs = currentUsers[0].blogs.concat(b.id);
+  });
+  await currentUsers[0].save();
+});
+
+describe('GET request for users', () => {
+  test('returns correct number of entries as JSON successfully and contains blogs info', async () => {
+    const users = await api
+      .get('/api/users')
+      .expect(200)
+      .expect('Content-Type', /application\/json/);
+
+    expect(users.body).toHaveLength(1);
+
+    expect(users.body[0].blogs[0]).toBeDefined();
+    expect(users.body[0].blogs[0].title).toEqual(helper.initialBlogs[0].title);
+  });
 });
 
 describe('Creating a new user', () => {
@@ -94,6 +112,8 @@ describe('Creating a new user', () => {
     expect(endingUsers).toHaveLength(startingUsers.length);
   });
 });
+
+
 
 describe('GET request for blogs', () => {
   test('bloglist is returned as JSON', async () => {
