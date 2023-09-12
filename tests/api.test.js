@@ -213,6 +213,16 @@ describe('POST request', () => {
     const blogs = await helper.blogsInDb();
     expect(blogs).toHaveLength(helper.initialBlogs.length);
   });
+
+  test('without a token returns status 401 and blog does not get added', async () => {
+    await api
+      .post('/api/blogs')
+      .send(newPost)
+      .expect(401);
+
+    const blogs = await helper.blogsInDb();
+    expect(blogs).toHaveLength(helper.initialBlogs.length);
+  });
 });
 
 describe('Deleting a blog post', () => {
