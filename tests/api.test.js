@@ -217,10 +217,14 @@ describe('POST request', () => {
 
 describe('Deleting a blog post', () => {
   test('using a valid id returns status code 204 and the blog is no longer in the database', async () => {
+    const users = await helper.usersInDb();
+    const user = users[0];
+    const token = jwt.sign({ username: user.username, id: user.id }, process.env.SECRET);
+
     const startingBlogs = await helper.blogsInDb();
     const blogToDelete = startingBlogs[0];
 
-    await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204);
+    await api.delete(`/api/blogs/${blogToDelete.id}`).set('Authorization', `Bearer ${token}`).expect(204);
 
     const endingBlogs = await helper.blogsInDb();
 
