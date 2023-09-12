@@ -9,30 +9,120 @@ const User = require('../models/users');
 const api = supertest(app);
 
 beforeEach(async () => {
+  await User.deleteMany({});
+
+  const passwordHash = await bcrypt.hash('password', 10);
+  const user = new User({ username: 'root', passwordHash });
+
+  await user.save();
+});
+
+beforeEach(async () => {
   await Blog.deleteMany({});
 
-  const blogObjects = helper.initialBlogs.map((b) => new Blog(b));
+  const user = await User.find({});
+  const uid = user[0]._id;
+
+  const blogObjects = helper.initialBlogs.map((b) => new Blog({ ...b, user: uid }));
   const promiseArray = blogObjects.map((b) => b.save());
   await Promise.all(promiseArray);
 });
 
-test('bloglist is returned as JSON', async () => {
-  await api
-    .get('/api/blogs')
-    .expect(200)
-    .expect('Content-Type', /application\/json/);
+describe('Creating a new user', () => {
+  test('with a valid username and password successfully saves the new user', async () => {
+    const newUser = {
+      username: 'person',
+      name: 'seb',
+      password: 'secret',
+    };
+
+    const startingUsers = await helper.usersInDb();
+
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(201)
+      .expect('Content-Type', /application\/json/);
+
+    const endingUsers = await helper.usersInDb();
+    expect(endingUsers).toHaveLength(startingUsers.length + 1);
+
+    const usernames = endingUsers.map((u) => u.username);
+    expect(usernames).toContain(newUser.username);
+  });
+
+  test('with an invalid username or password returns the appropriate status and error', async () => {
+    const shortPassUser = {
+      username: 'person',
+      name: 'seb',
+      password: 'se',
+    };
+
+    const noPassUser = {
+      username: 'person',
+      name: 'seb',
+    };
+
+    const shortNameUser = {
+      username: 'p',
+      name: 'seb',
+      password: 'secret',
+    };
+
+    const startingUsers = await helper.usersInDb();
+
+    let res;
+    res = await api
+      .post('/api/users')
+      .send(shortPassUser)
+      .expect(400);
+    expect(res.body.error).toBe('password is too short');
+
+    res = await api
+      .post('/api/users')
+      .send(noPassUser)
+      .expect(400);
+    expect(res.body.error).toBe('password is required');
+
+    res = await api
+      .post('/api/users')
+      .send(shortNameUser)
+      .expect(400);
+    expect(res.body.error).toBe('username is too short');
+
+    const endingUsers = await helper.usersInDb();
+    expect(endingUsers).toHaveLength(startingUsers.length);
+  });
 });
 
-test('bloglist returns the correct number of items', async () => {
-  const blogList = await api.get('/api/blogs');
+describe('GET request for blogs', () => {
+  test('bloglist is returned as JSON', async () => {
+    await api
+      .get('/api/blogs')
+      .expect(200)
+      .expect('Content-Type', /application\/json/);
+  });
 
-  expect(blogList.body).toHaveLength(helper.initialBlogs.length);
-});
+  test('bloglist returns the correct number of items', async () => {
+    const blogList = await api.get('/api/blogs');
 
-test('blog posts have unique identifier named "id"', async () => {
-  const blogList = await api.get('/api/blogs');
+    expect(blogList.body).toHaveLength(helper.initialBlogs.length);
+  });
 
-  expect(blogList.body[0].id).toBeDefined();
+  test('blog posts have unique identifier named "id"', async () => {
+    const blogList = await api.get('/api/blogs');
+
+    expect(blogList.body[0].id).toBeDefined();
+  });
+
+  test('entries contain user info', async () => {
+    const blogList = await api.get('/api/blogs');
+
+    const usernames = blogList.body.map((b) => b.user.username);
+    expect(usernames).toContain('root');
+
+    expect(blogList.body[0].user.blogs).not.toBeDefined();
+  });
 });
 
 describe('POST request', () => {
@@ -53,7 +143,9 @@ describe('POST request', () => {
     const updatedList = await helper.blogsInDb();
 
     expect(updatedList).toHaveLength(helper.initialBlogs.length + 1);
-    expect(updatedList).toContainEqual(addedPost.body);
+
+    const blogTitles = updatedList.map((b) => b.title);
+    expect(blogTitles).toContain(addedPost.body.title);
   });
 
   const postMissingLikes = {
@@ -124,82 +216,6 @@ describe('Updating a blog post', () => {
 
     const updatedBlogs = await helper.blogsInDb();
     expect(updatedBlogs[0].likes).toBe(19);
-  });
-});
-
-describe('Creating a new user', () => {
-  beforeEach(async () => {
-    await User.deleteMany({});
-
-    const passwordHash = await bcrypt.hash('password', 10);
-    const user = new User({ username: 'root', passwordHash });
-
-    await user.save();
-  });
-
-  test('with a valid username and password successfully saves the new user', async () => {
-    const newUser = {
-      username: 'person',
-      name: 'seb',
-      password: 'secret',
-    };
-
-    const startingUsers = await helper.usersInDb();
-
-    await api
-      .post('/api/users')
-      .send(newUser)
-      .expect(201)
-      .expect('Content-Type', /application\/json/);
-
-    const endingUsers = await helper.usersInDb();
-    expect(endingUsers).toHaveLength(startingUsers.length + 1);
-
-    const usernames = endingUsers.map((u) => u.username);
-    expect(usernames).toContain(newUser.username);
-  });
-
-  test('with an invalid username or password returns the appropriate status and error', async () => {
-    const shortPassUser = {
-      username: 'person',
-      name: 'seb',
-      password: 'se',
-    };
-
-    const noPassUser = {
-      username: 'person',
-      name: 'seb',
-    };
-
-    const shortNameUser = {
-      username: 'p',
-      name: 'seb',
-      password: 'secret',
-    };
-
-    const startingUsers = await helper.usersInDb();
-
-    let res;
-    res = await api
-      .post('/api/users')
-      .send(shortPassUser)
-      .expect(400);
-    expect(res.body.error).toBe('password is too short');
-
-    res = await api
-      .post('/api/users')
-      .send(noPassUser)
-      .expect(400);
-    expect(res.body.error).toBe('password is required');
-
-    res = await api
-      .post('/api/users')
-      .send(shortNameUser)
-      .expect(400);
-    expect(res.body.error).toBe('username is too short');
-
-    const endingUsers = await helper.usersInDb();
-    expect(endingUsers).toHaveLength(startingUsers.length);
   });
 });
 

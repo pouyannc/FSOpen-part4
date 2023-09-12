@@ -1,5 +1,5 @@
 const errorHandler = (error, req, res, next) => {
-  console.log(`reached error handler with error ${error.name}`);
+  console.log(`reached error handler with error ${error}`);
 
   if (error.name === 'ValidationError') {
     const errMessage = error.message.split(':')[2].trim();
