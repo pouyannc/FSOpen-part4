@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const supertest = require('supertest');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const helper = require('./test_helper');
 const app = require('../app');
 const Blog = require('../models/blogs');
@@ -154,9 +155,14 @@ describe('POST request', () => {
   };
 
   test('successfully stores a valid blog post in the db', async () => {
+    const users = await helper.usersInDb();
+    const user = users[0];
+    const token = jwt.sign({ username: user.username, id: user.id }, process.env.SECRET);
+
     const addedPost = await api
       .post('/api/blogs')
       .send(newPost)
+      .set('Authorization', `Bearer ${token}`)
       .expect(201)
       .expect('Content-Type', /application\/json/);
 
@@ -175,9 +181,14 @@ describe('POST request', () => {
   };
 
   test('with empty likes field defaults to 0 likes', async () => {
+    const users = await helper.usersInDb();
+    const user = users[0];
+    const token = jwt.sign({ username: user.username, id: user.id }, process.env.SECRET);
+
     const addedPost = await api
       .post('/api/blogs')
       .send(postMissingLikes)
+      .set('Authorization', `Bearer ${token}`)
       .expect(201)
       .expect('Content-Type', /application\/json/);
 
@@ -189,9 +200,14 @@ describe('POST request', () => {
   };
 
   test('without title or request field returns status 400 and the blog does not get added', async () => {
+    const users = await helper.usersInDb();
+    const user = users[0];
+    const token = jwt.sign({ username: user.username, id: user.id }, process.env.SECRET);
+
     await api
       .post('/api/blogs')
       .send(postMissingRequired)
+      .set('Authorization', `Bearer ${token}`)
       .expect(400);
 
     const blogs = await helper.blogsInDb();
