@@ -12,12 +12,7 @@ blogsRouter.get('/', async (request, response) => {
 
 blogsRouter.post('/', async (request, response, next) => {
   try {
-    const auth = request.get('authorization');
-    const token = (auth && auth.startsWith('Bearer '))
-      ? auth.replace('Bearer ', '')
-      : null;
-
-    const decodedToken = jwt.verify(token, process.env.SECRET);
+    const decodedToken = jwt.verify(request.token, process.env.SECRET);
     if (!decodedToken.id) return response.status(401).json({ error: 'invalid token' });
 
     const user = await User.findById(decodedToken.id);
