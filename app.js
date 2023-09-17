@@ -11,6 +11,7 @@ const config = require('./utils/config');
 const errorHandler = require('./utils/error_handler');
 const loginRouter = require('./controllers/login');
 const middleware = require('./utils/middleware');
+const testingRouter = require('./controllers/testing');
 
 const app = express();
 
@@ -26,6 +27,10 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('tiny'));
 app.use(middleware.tokenExtractor);
+
+if (process.env.NODE_ENV === 'test') {
+  app.use('/api/testing', testingRouter);
+}
 
 app.use('/api/blogs', blogsRouter);
 app.use('/api/users', usersRouter);

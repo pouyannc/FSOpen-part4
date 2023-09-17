@@ -1,8 +1,5 @@
 const blogsRouter = require('express').Router();
-const jwt = require('jsonwebtoken');
-
 const Blog = require('../models/blogs');
-const User = require('../models/users');
 const { userExtractor } = require('../utils/middleware');
 
 blogsRouter.get('/', async (request, response) => {
